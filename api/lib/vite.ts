@@ -7,7 +7,8 @@ import path from "path";
 type App = Hono<{ Bindings: HttpBindings }>;
 
 export function serveStaticFiles(app: App) {
-  const distPath = path.resolve(import.meta.dirname, "../dist/public");
+  // In production, boot.js is in dist/, so public files are at dist/public/
+  const distPath = path.resolve(process.cwd(), "dist/public");
 
   app.use("*", serveStatic({ root: "./dist/public" }));
 
@@ -17,6 +18,9 @@ export function serveStaticFiles(app: App) {
       return c.json({ error: "Not Found" }, 404);
     }
     const indexPath = path.resolve(distPath, "index.html");
+    if (!fs.existsSync(indexPath)) {
+      return c.json({ error: "Frontend not built" }, 500);
+    }
     const content = fs.readFileSync(indexPath, "utf-8");
     return c.html(content);
   });

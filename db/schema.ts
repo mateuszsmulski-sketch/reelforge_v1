@@ -5,7 +5,8 @@ import {
   varchar,
   text,
   timestamp,
-  // bigint,
+  int,
+  bigint,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -26,15 +27,27 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here. See docs/Database.md for schema examples and patterns.
-//
-// Example:
-// export const posts = mysqlTable("posts", {
-//   id: serial("id").primaryKey(),
-//   title: varchar("title", { length: 255 }).notNull(),
-//   content: text("content"),
-//   createdAt: timestamp("created_at").notNull().defaultNow(),
-// });
-//
-// Note: FK columns referencing a serial() PK must use:
-//   bigint("columnName", { mode: "number", unsigned: true }).notNull()
+export const videos = mysqlTable("videos", {
+  id: serial("id").primaryKey(),
+  userId: bigint("userId", { mode: "number", unsigned: true }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  prompt: text("prompt").notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["pending", "processing", "completed", "failed"])
+    .default("pending")
+    .notNull(),
+  videoUrl: text("videoUrl"),
+  thumbnailUrl: text("thumbnailUrl"),
+  duration: int("duration").default(5),
+  ratio: mysqlEnum("ratio", ["9:16", "16:9", "1:1", "3:4", "4:3"])
+    .default("9:16")
+    .notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export type Video = typeof videos.$inferSelect;
+export type InsertVideo = typeof videos.$inferInsert;

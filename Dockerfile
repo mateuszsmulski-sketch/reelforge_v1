@@ -16,8 +16,8 @@ COPY --from=build /app/db ./db
 COPY --from=build /app/contracts ./contracts
 COPY --from=build /app/drizzle.config.ts ./
 COPY --from=build /app/package.json ./
+COPY --from=build /app/tsconfig.server.json ./
 
 EXPOSE 3000
 ENV NODE_ENV=production
-ENV PORT=3000
 CMD ["npm", "start"]

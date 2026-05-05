@@ -1,11 +1,14 @@
 import { Link, useNavigate } from "react-router"
 import { useAuth } from "@/hooks/useAuth"
+import { useTranslation } from "@/i18n/useTranslation"
+import { LanguageSelector } from "@/components/LanguageSelector"
 import { Button } from "@/components/ui/button"
 import { Film, LogOut, User, Sparkles, Menu, X } from "lucide-react"
 import { useState } from "react"
 
 export function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -20,21 +23,22 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm text-zinc-400 hover:text-white transition-colors">Strona główna</Link>
+          <Link to="/" className="text-sm text-zinc-400 hover:text-white transition-colors">{t.nav_home}</Link>
           {isAuthenticated && (
             <>
-              <Link to="/dashboard" className="text-sm text-zinc-400 hover:text-white transition-colors">Dashboard</Link>
-              <Link to="/create" className="text-sm text-zinc-400 hover:text-white transition-colors">Kreator</Link>
+              <Link to="/dashboard" className="text-sm text-zinc-400 hover:text-white transition-colors">{t.nav_dashboard}</Link>
+              <Link to="/create" className="text-sm text-zinc-400 hover:text-white transition-colors">{t.nav_creator}</Link>
             </>
           )}
         </div>
 
         <div className="hidden md:flex items-center gap-3">
+          <LanguageSelector />
           {isAuthenticated ? (
             <>
               <div className="flex items-center gap-2 text-sm text-zinc-300">
                 <User className="h-4 w-4" />
-                <span className="max-w-[120px] truncate">{user?.name || "Użytkownik"}</span>
+                <span className="max-w-[120px] truncate">{user?.name || t.nav_user}</span>
               </div>
               <Button
                 variant="ghost"
@@ -51,7 +55,7 @@ export function Navbar() {
               className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:opacity-90"
             >
               <Sparkles className="mr-2 h-4 w-4" />
-              Zaloguj się
+              {t.nav_login}
             </Button>
           )}
         </div>
@@ -66,26 +70,29 @@ export function Navbar() {
 
       {mobileOpen && (
         <div className="md:hidden border-t border-white/10 bg-zinc-950 px-4 py-4 space-y-3">
-          <Link to="/" onClick={() => setMobileOpen(false)} className="block text-zinc-400 hover:text-white">Strona główna</Link>
+          <Link to="/" onClick={() => setMobileOpen(false)} className="block text-zinc-400 hover:text-white">{t.nav_home}</Link>
           {isAuthenticated && (
             <>
-              <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="block text-zinc-400 hover:text-white">Dashboard</Link>
-              <Link to="/create" onClick={() => setMobileOpen(false)} className="block text-zinc-400 hover:text-white">Kreator</Link>
+              <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="block text-zinc-400 hover:text-white">{t.nav_dashboard}</Link>
+              <Link to="/create" onClick={() => setMobileOpen(false)} className="block text-zinc-400 hover:text-white">{t.nav_creator}</Link>
               <div className="flex items-center gap-2 pt-2 border-t border-white/10">
                 <User className="h-4 w-4 text-zinc-400" />
                 <span className="text-sm text-zinc-300">{user?.name}</span>
               </div>
               <button onClick={() => { logout(); setMobileOpen(false); }} className="flex items-center gap-2 text-zinc-400 hover:text-white">
                 <LogOut className="h-4 w-4" />
-                <span>Wyloguj</span>
+                <span>{t.nav_logout}</span>
               </button>
             </>
           )}
           {!isAuthenticated && (
             <Button onClick={() => { navigate("/login"); setMobileOpen(false); }} className="w-full bg-gradient-to-r from-indigo-500 to-violet-600 text-white">
-              Zaloguj się
+              {t.nav_login}
             </Button>
           )}
+          <div className="pt-2 border-t border-white/10">
+            <LanguageSelector />
+          </div>
         </div>
       )}
     </nav>

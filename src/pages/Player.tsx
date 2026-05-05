@@ -2,43 +2,45 @@ import { useParams, useNavigate } from "react-router"
 import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
 import { trpc } from "@/providers/trpc"
+import { useTranslation } from "@/i18n/useTranslation"
 import { ArrowLeft, Download, Trash2, Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Wand2, Film } from "lucide-react"
 import { toast } from "sonner"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 function StatusDisplay({ status }: { status: string }) {
-  const config = {
+  const { t } = useTranslation()
+  const config: Record<string, { icon: React.ReactNode; title: string; desc: string; color: string; bg: string }> = {
     pending: {
       icon: <Clock className="h-12 w-12 text-yellow-400" />,
-      title: "W kolejce",
-      desc: "Twoje wideo czeka na rozpoczęcie generowania.",
+      title: t.player_queue,
+      desc: t.player_queue_desc,
       color: "text-yellow-400",
       bg: "bg-yellow-500/10 border-yellow-500/20",
     },
     processing: {
       icon: <Loader2 className="h-12 w-12 text-blue-400 animate-spin" />,
-      title: "Generowanie wideo...",
-      desc: "AI pracuje nad Twoim filmem. To może potrwać kilka minut.",
+      title: t.player_generating,
+      desc: t.player_generating_desc,
       color: "text-blue-400",
       bg: "bg-blue-500/10 border-blue-500/20",
     },
     completed: {
       icon: <CheckCircle2 className="h-12 w-12 text-emerald-400" />,
-      title: "Gotowe!",
-      desc: "Twoje wideo zostało wygenerowane pomyślnie.",
+      title: t.player_done,
+      desc: t.player_done_desc,
       color: "text-emerald-400",
       bg: "bg-emerald-500/10 border-emerald-500/20",
     },
     failed: {
       icon: <AlertCircle className="h-12 w-12 text-red-400" />,
-      title: "Błąd generowania",
-      desc: "Niestety, wystąpił problem podczas generowania. Spróbuj ponownie.",
+      title: t.player_error,
+      desc: t.player_error_desc,
       color: "text-red-400",
       bg: "bg-red-500/10 border-red-500/20",
     },
   }
-  const s = config[status as keyof typeof config] || config.pending
+  const s = config[status] || config.pending
   return (
     <div className={`flex flex-col items-center justify-center rounded-2xl border p-12 ${s.bg}`}>
       {s.icon}
@@ -51,6 +53,7 @@ function StatusDisplay({ status }: { status: string }) {
 export default function Player() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t, tInterp } = useTranslation()
   const videoId = Number(id)
   const utils = trpc.useUtils()
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -64,13 +67,13 @@ export default function Player() {
     onSuccess: () => {
       utils.video.getById.invalidate({ id: videoId })
       utils.video.list.invalidate()
-      toast.success("Wideo wygenerowane!")
+      toast.success(t.player_done)
     },
   })
 
   const deleteMutation = trpc.video.delete.useMutation({
     onSuccess: () => {
-      toast.success("Wideo usunięte")
+      toast.success(t.player_delete_title)
       navigate("/dashboard")
     },
   })
@@ -92,11 +95,11 @@ export default function Player() {
         <Navbar />
         <div className="mx-auto max-w-3xl px-4 py-24 text-center">
           <Film className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Nie znaleziono wideo</h1>
-          <p className="text-zinc-500 mb-6">To wideo mogło zostać usunięte lub nie masz do niego dostępu.</p>
+          <h1 className="text-2xl font-bold mb-2">{t.player_not_found}</h1>
+          <p className="text-zinc-500 mb-6">{t.player_not_found_desc}</p>
           <Button onClick={() => navigate("/dashboard")} className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Wróć do biblioteki
+            {t.player_not_found_button}
           </Button>
         </div>
       </div>
@@ -116,7 +119,7 @@ export default function Player() {
           className="mb-6 inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Wróć do biblioteki
+          {t.player_back}
         </button>
 
         <div className="grid gap-8 lg:grid-cols-2">
@@ -144,12 +147,12 @@ export default function Player() {
                 {simulateMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Przetwarzanie...
+                    {t.player_processing}
                   </>
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Odśwież status (demo: zakończ generowanie)
+                    {t.player_refresh}
                   </>
                 )}
               </Button>
@@ -163,7 +166,7 @@ export default function Player() {
               <div className="mt-2 flex items-center gap-3 text-sm text-zinc-500">
                 <span className="inline-flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  {new Date(video.createdAt).toLocaleDateString("pl-PL")}
+                  {new Date(video.createdAt).toLocaleDateString()}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Film className="h-3.5 w-3.5" />
@@ -173,7 +176,7 @@ export default function Player() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-zinc-300">Prompt AI</h3>
+              <h3 className="text-sm font-medium text-zinc-300">{t.player_prompt}</h3>
               <div className="rounded-xl bg-zinc-900 border border-white/10 p-4">
                 <p className="text-sm text-zinc-400 leading-relaxed">{video.prompt}</p>
               </div>
@@ -181,7 +184,7 @@ export default function Player() {
 
             {video.description && (
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-zinc-300">Opis / Notatki</h3>
+                <h3 className="text-sm font-medium text-zinc-300">{t.player_notes}</h3>
                 <p className="text-sm text-zinc-500">{video.description}</p>
               </div>
             )}
@@ -191,7 +194,7 @@ export default function Player() {
                 <a href={video.videoUrl} download target="_blank" rel="noopener noreferrer">
                   <Button className="w-full bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:opacity-90">
                     <Download className="mr-2 h-4 w-4" />
-                    Pobierz wideo
+                    {t.player_download}
                   </Button>
                 </a>
               )}
@@ -201,7 +204,7 @@ export default function Player() {
                 className="w-full border-white/10 text-white hover:bg-white/10"
               >
                 <Wand2 className="mr-2 h-4 w-4" />
-                Stwórz kolejne wideo
+                {t.player_create_next}
               </Button>
               <Button
                 variant="ghost"
@@ -209,7 +212,7 @@ export default function Player() {
                 className="w-full text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Usuń projekt
+                {t.player_delete_project}
               </Button>
             </div>
           </div>
@@ -220,21 +223,21 @@ export default function Player() {
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="bg-zinc-950 border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Usuń projekt</DialogTitle>
+            <DialogTitle>{t.player_delete_title}</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Czy na pewno chcesz usunąć "{video.title}"? Tej operacji nie można cofnąć.
+              {tInterp("player_delete_desc", { title: video.title })}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="ghost" onClick={() => setDeleteOpen(false)} className="text-zinc-400 hover:text-white">
-              Anuluj
+              {t.dash_cancel}
             </Button>
             <Button
               variant="destructive"
               onClick={() => deleteMutation.mutate({ id: videoId })}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "Usuwanie..." : "Usuń"}
+              {deleteMutation.isPending ? t.player_processing : t.dash_delete}
             </Button>
           </div>
         </DialogContent>

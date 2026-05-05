@@ -3,12 +3,14 @@ import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { trpc } from "@/providers/trpc"
+import { useTranslation } from "@/i18n/useTranslation"
 import { Plus, Play, Trash2, Clock, CheckCircle2, AlertCircle, Loader2, Film } from "lucide-react"
 import { toast } from "sonner"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation()
   const styles = {
     pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
     processing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -21,11 +23,11 @@ function StatusBadge({ status }: { status: string }) {
     completed: <CheckCircle2 className="h-3 w-3" />,
     failed: <AlertCircle className="h-3 w-3" />,
   }
-  const labels = {
-    pending: "Oczekuje",
-    processing: "Generowanie...",
-    completed: "Gotowe",
-    failed: "Błąd",
+  const labels: Record<string, string> = {
+    pending: t.dash_status_pending,
+    processing: t.dash_status_processing,
+    completed: t.dash_status_completed,
+    failed: t.dash_status_failed,
   }
   const s = status as keyof typeof styles
   return (
@@ -38,12 +40,13 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const utils = trpc.useUtils()
   const { data: videos, isLoading } = trpc.video.list.useQuery()
   const deleteMutation = trpc.video.delete.useMutation({
     onSuccess: () => {
       utils.video.list.invalidate()
-      toast.success("Wideo usunięte")
+      toast.success(t.dash_delete_title)
     },
   })
   const [previewVideo, setPreviewVideo] = useState<string | null>(null)
@@ -56,12 +59,12 @@ export default function Dashboard() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Twoje filmy</h1>
-            <p className="mt-1 text-zinc-400">Zarządzaj swoimi projektami AI</p>
+            <h1 className="text-3xl font-bold">{t.dash_title}</h1>
+            <p className="mt-1 text-zinc-400">{t.dash_subtitle}</p>
           </div>
           <Button onClick={() => navigate("/create")} className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:opacity-90">
             <Plus className="mr-2 h-4 w-4" />
-            Nowe wideo
+            {t.dash_new_video}
           </Button>
         </div>
 
@@ -74,13 +77,13 @@ export default function Dashboard() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 mb-4">
               <Film className="h-8 w-8 text-zinc-500" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">Brak filmów</h3>
+            <h3 className="text-lg font-semibold mb-1">{t.dash_empty_title}</h3>
             <p className="text-zinc-500 mb-6 text-center max-w-sm">
-              Nie masz jeszcze żadnych projektów. Stwórz swoje pierwsze wideo AI!
+              {t.dash_empty_desc}
             </p>
             <Button onClick={() => navigate("/create")} className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white hover:opacity-90">
               <Plus className="mr-2 h-4 w-4" />
-              Stwórz wideo
+              {t.dash_empty_button}
             </Button>
           </div>
         ) : (
@@ -127,7 +130,7 @@ export default function Dashboard() {
                   <p className="text-xs text-zinc-500 line-clamp-2 mb-3">{video.prompt}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-600">
-                      {new Date(video.createdAt).toLocaleDateString("pl-PL")}
+                      {new Date(video.createdAt).toLocaleDateString()}
                     </span>
                     <div className="flex items-center gap-2">
                       <Button
@@ -136,7 +139,7 @@ export default function Dashboard() {
                         onClick={() => navigate(`/video/${video.id}`)}
                         className="h-8 text-zinc-400 hover:text-white hover:bg-white/10"
                       >
-                        Szczegóły
+                        {t.dash_details}
                       </Button>
                       <Button
                         variant="ghost"
@@ -175,14 +178,14 @@ export default function Dashboard() {
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent className="bg-zinc-950 border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>Usuń wideo</DialogTitle>
+            <DialogTitle>{t.dash_delete_title}</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Czy na pewno chcesz usunąć ten projekt? Tej operacji nie można cofnąć.
+              {t.dash_delete_desc}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="ghost" onClick={() => setDeleteId(null)} className="text-zinc-400 hover:text-white">
-              Anuluj
+              {t.dash_cancel}
             </Button>
             <Button
               variant="destructive"
@@ -191,7 +194,7 @@ export default function Dashboard() {
                 setDeleteId(null)
               }}
             >
-              Usuń
+              {t.dash_delete}
             </Button>
           </div>
         </DialogContent>

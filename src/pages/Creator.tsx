@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { trpc } from "@/providers/trpc"
+import { useTranslation } from "@/i18n/useTranslation"
 import { Wand2, ArrowLeft, Clock, Smartphone, Monitor, Square, RectangleVertical, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -20,6 +21,7 @@ const durations = [4, 5, 6, 8, 9, 10, 12]
 
 export default function Creator() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [title, setTitle] = useState("")
   const [prompt, setPrompt] = useState("")
   const [description, setDescription] = useState("")
@@ -28,18 +30,18 @@ export default function Creator() {
 
   const createMutation = trpc.video.create.useMutation({
     onSuccess: (data) => {
-      toast.success("Wideo utworzone! Rozpoczynam generowanie...")
+      toast.success(t.creator_title)
       navigate(`/video/${data.id}`)
     },
     onError: (err) => {
-      toast.error(err.message || "Błąd tworzenia wideo")
+      toast.error(err.message || t.creator_title)
     },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim() || !prompt.trim()) {
-      toast.error("Tytuł i prompt są wymagane")
+      toast.error(t.creator_project_title)
       return
     }
     createMutation.mutate({
@@ -61,25 +63,25 @@ export default function Creator() {
           className="mb-6 inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Wróć do biblioteki
+          {t.creator_back}
         </button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Nowe wideo AI</h1>
-          <p className="mt-1 text-zinc-400">Opisz swoją wizję, a my ją zrealizujemy</p>
+          <h1 className="text-3xl font-bold">{t.creator_title}</h1>
+          <p className="mt-1 text-zinc-400">{t.creator_subtitle}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium text-zinc-300">
-              Tytuł projektu
+              {t.creator_project_title}
             </Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="np. Burger promo - lato 2025"
+              placeholder={t.creator_project_placeholder}
               className="bg-zinc-900 border-white/10 text-white placeholder:text-zinc-600 focus:border-indigo-500"
               maxLength={255}
             />
@@ -88,30 +90,30 @@ export default function Creator() {
           {/* Prompt */}
           <div className="space-y-2">
             <Label htmlFor="prompt" className="text-sm font-medium text-zinc-300">
-              Prompt AI <span className="text-zinc-500">(opisz scenę)</span>
+              {t.creator_prompt} <span className="text-zinc-500">{t.creator_prompt_hint}</span>
             </Label>
             <Textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="np. Pyszny burger z grillowanym mięsem, topiący się ser cheddar, na gorącej płycie, para unosząca się w zwolnionym tempie, złote oświetlenie restauracji..."
+              placeholder={t.creator_prompt_placeholder}
               className="min-h-[140px] bg-zinc-900 border-white/10 text-white placeholder:text-zinc-600 focus:border-indigo-500 resize-none"
             />
             <p className="text-xs text-zinc-600">
-              Im bardziej szczegółowy prompt, tym lepszy rezultat. Opisz styl, oświetlenie, kolory i nastrój.
+              {t.creator_prompt_tip}
             </p>
           </div>
 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="desc" className="text-sm font-medium text-zinc-300">
-              Opis <span className="text-zinc-500">(opcjonalny)</span>
+              {t.creator_description} <span className="text-zinc-500">{t.creator_description_optional}</span>
             </Label>
             <Textarea
               id="desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Notatki dla siebie - hashtag'e, muzyka, call-to-action..."
+              placeholder={t.creator_description_placeholder}
               className="min-h-[80px] bg-zinc-900 border-white/10 text-white placeholder:text-zinc-600 focus:border-indigo-500 resize-none"
             />
           </div>
@@ -120,7 +122,7 @@ export default function Creator() {
           <div className="space-y-3">
             <Label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Długość wideo: {duration}s
+              {t.creator_duration}: {duration}s
             </Label>
             <div className="flex flex-wrap gap-2">
               {durations.map((d) => (
@@ -142,7 +144,7 @@ export default function Creator() {
 
           {/* Ratio */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium text-zinc-300">Format wideo</Label>
+            <Label className="text-sm font-medium text-zinc-300">{t.creator_format}</Label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {ratios.map((r) => (
                 <button
@@ -172,12 +174,12 @@ export default function Creator() {
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Tworzenie...
+                  {t.creator_creating}
                 </>
               ) : (
                 <>
                   <Wand2 className="mr-2 h-5 w-5" />
-                  Generuj wideo AI
+                  {t.creator_generate}
                 </>
               )}
             </Button>
@@ -187,7 +189,7 @@ export default function Creator() {
               onClick={() => navigate("/dashboard")}
               className="h-12 border-white/10 text-white hover:bg-white/10"
             >
-              Anuluj
+              {t.creator_cancel}
             </Button>
           </div>
         </form>

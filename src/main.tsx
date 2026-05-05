@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import './index.css'
 import { TRPCProvider } from "@/providers/trpc"
+import { LanguageProvider } from "@/i18n/LanguageContext"
 import App from './App.tsx'
 
 // Register PWA Service Worker
@@ -17,9 +18,11 @@ if ('serviceWorker' in navigator) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <TRPCProvider>
-        <App />
-      </TRPCProvider>
+      <LanguageProvider>
+        <TRPCProvider>
+          <App />
+        </TRPCProvider>
+      </LanguageProvider>
     </BrowserRouter>
   </StrictMode>,
 )

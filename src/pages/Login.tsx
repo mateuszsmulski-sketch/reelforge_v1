@@ -4,8 +4,8 @@ import { Film, Sparkles } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 
 function getOAuthUrl() {
-  const kimiAuthUrl = import.meta.env.VITE_KIMI_AUTH_URL;
-  const appID = import.meta.env.VITE_APP_ID;
+  const kimiAuthUrl = import.meta.env.VITE_KIMI_AUTH_URL || "https://auth.kimi.com";
+  const appID = import.meta.env.VITE_APP_ID || "19df60a7-5882-85c8-8000-0000c587b851";
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
   const state = btoa(redirectUri);
 

@@ -7,11 +7,23 @@ import { createContext } from "./context";
 import { env } from "./lib/env";
 import { createOAuthCallbackHandler } from "./kimi/auth";
 import { Paths } from "@contracts/constants";
+import { runMigrations } from "./migrations";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
+
+// Manual DB init endpoint (call from browser if auto-migration fails)
+app.get("/api/init-db", async (c) => {
+  try {
+    await runMigrations();
+    return c.json({ success: true, message: "Database initialized" });
+  } catch (err) {
+    return c.json({ success: false, error: err instanceof Error ? err.message : String(err) }, 500);
+  }
+});
+
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 app.use("/api/trpc/*", async (c) => {
   return fetchRequestHandler({
@@ -26,8 +38,7 @@ app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 export default app;
 
 if (env.isProduction) {
-  // Auto-migrate database on startup using raw SQL
-  const { runMigrations } = await import("./migrations");
+  // Auto-migrate on startup
   await runMigrations();
 
   const { serve } = await import("@hono/node-server");

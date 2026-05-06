@@ -1,10 +1,11 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 import { eq } from "drizzle-orm";
 import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { users } from "@db/schema";
+import { runMigrations } from "./migrations";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.APP_SECRET || "reelforge-local-secret-key-2025"
@@ -18,12 +19,11 @@ async function createToken(userId: number): Promise<string> {
     .sign(JWT_SECRET);
 }
 
-async function verifyToken(token: string) {
+async function ensureDb() {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET, { clockTolerance: 60 });
-    return payload.sub ? Number(payload.sub) : null;
-  } catch {
-    return null;
+    await runMigrations();
+  } catch (e) {
+    console.log("Migration check:", e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -37,6 +37,7 @@ export const localAuthRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      await ensureDb();
       const db = getDb();
 
       const [existing] = await db
@@ -70,6 +71,7 @@ export const localAuthRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
+      await ensureDb();
       const db = getDb();
 
       const [user] = await db
@@ -111,22 +113,28 @@ export const localAuthRouter = createRouter({
     }
 
     const token = authHeader.slice(7);
-    const userId = await verifyToken(token);
-    if (!userId) return null;
+    try {
+      const { jwtVerify } = await import("jose");
+      const { payload } = await jwtVerify(token, JWT_SECRET, { clockTolerance: 60 });
+      const userId = payload.sub ? Number(payload.sub) : null;
+      if (!userId) return null;
 
-    const db = getDb();
-    const [user] = await db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        avatar: users.avatar,
-        role: users.role,
-        createdAt: users.createdAt,
-      })
-      .from(users)
-      .where(eq(users.id, userId));
+      const db = getDb();
+      const [user] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          avatar: users.avatar,
+          role: users.role,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(eq(users.id, userId));
 
-    return user ?? null;
+      return user ?? null;
+    } catch {
+      return null;
+    }
   }),
 });

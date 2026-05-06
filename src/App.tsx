@@ -5,6 +5,8 @@ import Dashboard from "./pages/Dashboard"
 import Creator from "./pages/Creator"
 import Player from "./pages/Player"
 import NotFound from "./pages/NotFound"
+import GoogleCallback from "./pages/oauth/GoogleCallback"
+import AppleCallback from "./pages/oauth/AppleCallback"
 import { useAuth } from "./hooks/useAuth"
 import { Toaster } from "@/components/ui/sonner"
 
@@ -26,6 +28,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/oauth/google/callback" element={<GoogleCallback />} />
+        <Route path="/oauth/apple/callback" element={<AppleCallback />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><Creator /></ProtectedRoute>} />
         <Route path="/video/:id" element={<ProtectedRoute><Player /></ProtectedRoute>} />

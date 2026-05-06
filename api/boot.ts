@@ -26,6 +26,15 @@ app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 export default app;
 
 if (env.isProduction) {
+  // Auto-migrate database on startup
+  try {
+    const { execSync } = await import("child_process");
+    execSync("npx drizzle-kit push --force", { stdio: "inherit" });
+    console.log("Database migrated successfully");
+  } catch (err) {
+    console.log("Migration note:", err instanceof Error ? err.message : String(err));
+  }
+
   const { serve } = await import("@hono/node-server");
   const { serveStaticFiles } = await import("./lib/vite");
   serveStaticFiles(app);

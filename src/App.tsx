@@ -9,7 +9,7 @@ import { useAuth } from "./hooks/useAuth"
 import { Toaster } from "@/components/ui/sonner"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth({ redirectOnUnauthenticated: true })
+  const { isAuthenticated, isLoading } = useAuth()
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-950">

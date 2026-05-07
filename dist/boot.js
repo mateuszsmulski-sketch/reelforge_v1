@@ -52856,12 +52856,34 @@ async function runMigrations() {
   const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
   if (!dbUrl) {
     console.error("[DB] No DATABASE_URL found");
-    return;
+    return { success: false, error: "No database URL" };
   }
   let connection = null;
   try {
     connection = await import_promise.default.createConnection(dbUrl);
-    console.log("[DB] Connected for migrations");
+    console.log("[DB] Connected");
+    const [existingTables] = await connection.execute(
+      `SHOW TABLES LIKE 'users'`
+    );
+    if (existingTables.length > 0) {
+      const [columns] = await connection.execute(
+        `SHOW COLUMNS FROM users LIKE 'password'`
+      );
+      if (columns.length === 0) {
+        console.log("[DB] Old users table found - rebuilding...");
+        await connection.execute(`DROP TABLE IF EXISTS videos`);
+        await connection.execute(`DROP TABLE IF EXISTS users`);
+      } else {
+        const [authCols] = await connection.execute(
+          `SHOW COLUMNS FROM users LIKE 'authProvider'`
+        );
+        if (authCols.length === 0) {
+          await connection.execute(
+            `ALTER TABLE users ADD COLUMN authProvider ENUM('local','google','apple','kimi') DEFAULT 'local' NOT NULL`
+          );
+        }
+      }
+    }
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -52895,9 +52917,11 @@ async function runMigrations() {
       )
     `);
     console.log("[DB] Videos table OK");
-    console.log("[DB] All migrations completed");
+    return { success: true, message: "Database initialized" };
   } catch (err) {
-    console.error("[DB] Migration error:", err instanceof Error ? err.message : String(err));
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[DB] Migration error:", msg);
+    return { success: false, error: msg };
   } finally {
     if (connection) await connection.end();
   }

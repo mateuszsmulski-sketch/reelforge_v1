@@ -4,14 +4,43 @@ export async function runMigrations() {
   const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
   if (!dbUrl) {
     console.error("[DB] No DATABASE_URL found");
-    return;
+    return { success: false, error: "No database URL" };
   }
 
   let connection: mysql.Connection | null = null;
   try {
     connection = await mysql.createConnection(dbUrl);
-    console.log("[DB] Connected for migrations");
+    console.log("[DB] Connected");
 
+    // Check if users table exists and has correct structure
+    const [existingTables] = await connection.execute(
+      `SHOW TABLES LIKE 'users'`
+    ) as any[];
+
+    if (existingTables.length > 0) {
+      // Table exists - check if it has password column
+      const [columns] = await connection.execute(
+        `SHOW COLUMNS FROM users LIKE 'password'`
+      ) as any[];
+
+      if (columns.length === 0) {
+        console.log("[DB] Old users table found - rebuilding...");
+        await connection.execute(`DROP TABLE IF EXISTS videos`);
+        await connection.execute(`DROP TABLE IF EXISTS users`);
+      } else {
+        // Check if authProvider column exists
+        const [authCols] = await connection.execute(
+          `SHOW COLUMNS FROM users LIKE 'authProvider'`
+        ) as any[];
+        if (authCols.length === 0) {
+          await connection.execute(
+            `ALTER TABLE users ADD COLUMN authProvider ENUM('local','google','apple','kimi') DEFAULT 'local' NOT NULL`
+          );
+        }
+      }
+    }
+
+    // Create users table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -29,6 +58,7 @@ export async function runMigrations() {
     `);
     console.log("[DB] Users table OK");
 
+    // Create videos table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS videos (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -47,9 +77,11 @@ export async function runMigrations() {
     `);
     console.log("[DB] Videos table OK");
 
-    console.log("[DB] All migrations completed");
+    return { success: true, message: "Database initialized" };
   } catch (err) {
-    console.error("[DB] Migration error:", err instanceof Error ? err.message : String(err));
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[DB] Migration error:", msg);
+    return { success: false, error: msg };
   } finally {
     if (connection) await connection.end();
   }

@@ -52762,30 +52762,20 @@ function drizzle(...params) {
   drizzle2.mock = mock;
 })(drizzle || (drizzle = {}));
 
-// node_modules/dotenv/config.js
-(function() {
-  require_main().config(
-    Object.assign(
-      {},
-      require_env_options(),
-      require_cli_options()(process.argv)
-    )
-  );
-})();
-
-// api/lib/env.ts
-function getEnv(name, fallback) {
-  return process.env[name] || fallback || "";
+// api/lib/db-url.ts
+function getDatabaseUrl() {
+  const url2 = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
+  if (url2) return url2;
+  const host = process.env.MYSQLHOST || process.env.MYSQL_HOST;
+  const port = process.env.MYSQLPORT || process.env.MYSQL_PORT || "3306";
+  const database = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE;
+  const user = process.env.MYSQLUSER || process.env.MYSQL_USER;
+  const password = process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || process.env.MYSQL_ROOT_PASSWORD;
+  if (host && database && user) {
+    return `mysql://${user}:${password}@${host}:${port}/${database}`;
+  }
+  return "";
 }
-var env = {
-  appId: getEnv("APP_ID"),
-  appSecret: getEnv("APP_SECRET"),
-  isProduction: process.env.NODE_ENV === "production",
-  databaseUrl: getEnv("DATABASE_URL"),
-  kimiAuthUrl: getEnv("KIMI_AUTH_URL", "https://auth.kimi.com"),
-  kimiOpenUrl: getEnv("KIMI_OPEN_URL", "https://open.kimi.com"),
-  ownerUnionId: getEnv("OWNER_UNION_ID")
-};
 
 // db/schema.ts
 var schema_exports = {};
@@ -52842,7 +52832,8 @@ var fullSchema = { ...schema_exports, ...relations_exports };
 var instance;
 function getDb() {
   if (!instance) {
-    instance = drizzle(env.databaseUrl, {
+    const url2 = getDatabaseUrl();
+    instance = drizzle(url2, {
       mode: "planetscale",
       schema: fullSchema
     });
@@ -52853,9 +52844,9 @@ function getDb() {
 // api/migrations.ts
 var import_promise = __toESM(require_promise(), 1);
 async function runMigrations() {
-  const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+  const dbUrl = getDatabaseUrl();
   if (!dbUrl) {
-    console.error("[DB] No DATABASE_URL found");
+    console.error("[DB] No DATABASE_URL / MYSQL_URL found");
     return { success: false, error: "No database URL" };
   }
   let connection = null;
@@ -53198,6 +53189,31 @@ var setCookie = (c, name, value, opt) => {
 // api/kimi/auth.ts
 init_webapi();
 var cookie2 = __toESM(require_dist(), 1);
+
+// node_modules/dotenv/config.js
+(function() {
+  require_main().config(
+    Object.assign(
+      {},
+      require_env_options(),
+      require_cli_options()(process.argv)
+    )
+  );
+})();
+
+// api/lib/env.ts
+function getEnv(name, fallback) {
+  return process.env[name] || fallback || "";
+}
+var env = {
+  appId: getEnv("APP_ID"),
+  appSecret: getEnv("APP_SECRET"),
+  isProduction: process.env.NODE_ENV === "production",
+  databaseUrl: getDatabaseUrl(),
+  kimiAuthUrl: getEnv("KIMI_AUTH_URL", "https://auth.kimi.com"),
+  kimiOpenUrl: getEnv("KIMI_OPEN_URL", "https://open.kimi.com"),
+  ownerUnionId: getEnv("OWNER_UNION_ID")
+};
 
 // contracts/errors.ts
 function appError(status, message2) {

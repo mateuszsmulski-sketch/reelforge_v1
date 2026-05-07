@@ -1,9 +1,10 @@
 import mysql from "mysql2/promise";
+import { getDatabaseUrl } from "./lib/db-url";
 
 export async function runMigrations() {
-  const dbUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+  const dbUrl = getDatabaseUrl();
   if (!dbUrl) {
-    console.error("[DB] No DATABASE_URL found");
+    console.error("[DB] No DATABASE_URL / MYSQL_URL found");
     return { success: false, error: "No database URL" };
   }
 

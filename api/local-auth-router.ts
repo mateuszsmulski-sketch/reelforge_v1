@@ -5,7 +5,6 @@ import { eq } from "drizzle-orm";
 import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { users } from "@db/schema";
-import { runMigrations } from "./migrations";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.APP_SECRET || "reelforge-local-secret-key-2025"
@@ -19,14 +18,6 @@ async function createToken(userId: number): Promise<string> {
     .sign(JWT_SECRET);
 }
 
-async function ensureDb() {
-  try {
-    await runMigrations();
-  } catch (e) {
-    console.log("Migration check:", e instanceof Error ? e.message : String(e));
-  }
-}
-
 export const localAuthRouter = createRouter({
   register: publicQuery
     .input(
@@ -37,13 +28,13 @@ export const localAuthRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
-      await ensureDb();
       const db = getDb();
 
-      const [existing] = await db
+      const existing = db
         .select()
         .from(users)
-        .where(eq(users.email, input.email));
+        .where(eq(users.email, input.email))
+        .get();
 
       if (existing) {
         throw new Error("Email already registered");
@@ -51,13 +42,13 @@ export const localAuthRouter = createRouter({
 
       const hashedPassword = await bcrypt.hash(input.password, 12);
 
-      const [result] = await db.insert(users).values({
+      const result = db.insert(users).values({
         name: input.name,
         email: input.email,
         password: hashedPassword,
-      });
+      }).returning().get();
 
-      const userId = Number(result.insertId);
+      const userId = result.id;
       const token = await createToken(userId);
 
       return { token, user: { id: userId, name: input.name, email: input.email } };
@@ -71,13 +62,13 @@ export const localAuthRouter = createRouter({
       })
     )
     .mutation(async ({ input }) => {
-      await ensureDb();
       const db = getDb();
 
-      const [user] = await db
+      const user = db
         .select()
         .from(users)
-        .where(eq(users.email, input.email));
+        .where(eq(users.email, input.email))
+        .get();
 
       if (!user || !user.password) {
         throw new Error("Invalid email or password");
@@ -88,10 +79,10 @@ export const localAuthRouter = createRouter({
         throw new Error("Invalid email or password");
       }
 
-      await db
-        .update(users)
+      db.update(users)
         .set({ lastSignInAt: new Date() })
-        .where(eq(users.id, user.id));
+        .where(eq(users.id, user.id))
+        .run();
 
       const token = await createToken(user.id);
 
@@ -120,7 +111,7 @@ export const localAuthRouter = createRouter({
       if (!userId) return null;
 
       const db = getDb();
-      const [user] = await db
+      const user = db
         .select({
           id: users.id,
           name: users.name,
@@ -130,7 +121,8 @@ export const localAuthRouter = createRouter({
           createdAt: users.createdAt,
         })
         .from(users)
-        .where(eq(users.id, userId));
+        .where(eq(users.id, userId))
+        .get();
 
       return user ?? null;
     } catch {

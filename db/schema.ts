@@ -1,54 +1,35 @@
-import {
-  mysqlTable,
-  mysqlEnum,
-  serial,
-  varchar,
-  text,
-  timestamp,
-  int,
-  bigint,
-} from "drizzle-orm/mysql-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const users = mysqlTable("users", {
-  id: serial("id").primaryKey(),
-  unionId: varchar("unionId", { length: 255 }).unique(),
-  email: varchar("email", { length: 320 }).unique(),
-  password: varchar("password", { length: 255 }),
-  name: varchar("name", { length: 255 }),
+export const users = sqliteTable("users", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  unionId: text("unionId").unique(),
+  email: text("email").unique(),
+  password: text("password"),
+  name: text("name"),
   avatar: text("avatar"),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  authProvider: mysqlEnum("authProvider", ["local", "google", "apple", "kimi"]).default("local").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt")
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-  lastSignInAt: timestamp("lastSignInAt").defaultNow().notNull(),
+  role: text("role", { enum: ["user", "admin"] }).default("user").notNull(),
+  authProvider: text("authProvider", { enum: ["local", "google", "apple", "kimi"] }).default("local").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  lastSignInAt: integer("lastSignInAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-export const videos = mysqlTable("videos", {
-  id: serial("id").primaryKey(),
-  userId: bigint("userId", { mode: "number", unsigned: true }).notNull(),
-  title: varchar("title", { length: 255 }).notNull(),
+export const videos = sqliteTable("videos", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId", { mode: "number" }).notNull(),
+  title: text("title").notNull(),
   prompt: text("prompt").notNull(),
   description: text("description"),
-  status: mysqlEnum("status", ["pending", "processing", "completed", "failed"])
-    .default("pending")
-    .notNull(),
+  status: text("status", { enum: ["pending", "processing", "completed", "failed"] }).default("pending").notNull(),
   videoUrl: text("videoUrl"),
   thumbnailUrl: text("thumbnailUrl"),
-  duration: int("duration").default(5),
-  ratio: mysqlEnum("ratio", ["9:16", "16:9", "1:1", "3:4", "4:3"])
-    .default("9:16")
-    .notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt")
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
+  duration: integer("duration").default(5),
+  ratio: text("ratio", { enum: ["9:16", "16:9", "1:1", "3:4", "4:3"] }).default("9:16").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
 export type Video = typeof videos.$inferSelect;

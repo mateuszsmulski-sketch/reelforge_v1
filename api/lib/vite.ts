@@ -31,19 +31,11 @@ export function serveStaticFiles(app: App) {
     console.error("[Static] Frontend files NOT FOUND in any location!");
     console.error("[Static] Searched paths:", possiblePaths);
     console.error("[Static] CWD:", process.cwd());
-    console.error("[Static] Files in CWD:", fs.readdirSync(process.cwd()));
-    
-    // Return error for all non-API routes
-    app.use("*", (c) => {
-      if (c.req.path.startsWith("/api/")) {
-        return c.json({ error: "Not Found" }, 404);
-      }
-      return c.json({ 
-        error: "Frontend not built", 
-        cwd: process.cwd(),
-        searched: possiblePaths,
-      }, 500);
-    });
+    try {
+      console.error("[Static] Files in CWD:", fs.readdirSync(process.cwd()));
+    } catch {
+      console.error("[Static] Cannot read CWD");
+    }
     return;
   }
 
@@ -51,11 +43,16 @@ export function serveStaticFiles(app: App) {
   const relativeRoot = path.relative(process.cwd(), distPath) || ".";
   app.use("*", serveStatic({ root: relativeRoot }));
 
-  // SPA fallback: serve index.html for all non-API routes
+  // SPA fallback: serve index.html for all non-API, non-file routes
   app.notFound((c) => {
     if (c.req.path.startsWith("/api/")) {
       return c.json({ error: "Not Found" }, 404);
     }
+    // Check if requesting a file (has extension)
+    if (path.extname(c.req.path)) {
+      return c.json({ error: "Not Found" }, 404);
+    }
+    // SPA fallback
     const indexPath = path.resolve(distPath, "index.html");
     if (!fs.existsSync(indexPath)) {
       return c.json({ error: "Frontend not built" }, 500);

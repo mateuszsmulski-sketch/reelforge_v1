@@ -17,7 +17,7 @@ export const videoRouter = createRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
-      const [video] = await db.insert(videos).values({
+      const result = db.insert(videos).values({
         userId: ctx.user.id,
         title: input.title,
         prompt: input.prompt,
@@ -25,9 +25,9 @@ export const videoRouter = createRouter({
         duration: input.duration,
         ratio: input.ratio,
         status: "processing",
-      });
+      }).returning().get();
 
-      return { id: Number(video.insertId), success: true };
+      return { id: result.id, success: true };
     }),
 
   list: authedQuery.query(async ({ ctx }) => {
@@ -36,28 +36,28 @@ export const videoRouter = createRouter({
       .select()
       .from(videos)
       .where(eq(videos.userId, ctx.user.id))
-      .orderBy(desc(videos.createdAt));
+      .orderBy(desc(videos.createdAt))
+      .all();
   }),
 
   getById: authedQuery
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
       const db = getDb();
-      const [video] = await db
+      return db
         .select()
         .from(videos)
-        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)));
-
-      return video ?? null;
+        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)))
+        .get() ?? null;
     }),
 
   delete: authedQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
-      await db
-        .delete(videos)
-        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)));
+      db.delete(videos)
+        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)))
+        .run();
 
       return { success: true };
     }),
@@ -77,10 +77,10 @@ export const videoRouter = createRouter({
       if (input.videoUrl) updates.videoUrl = input.videoUrl;
       if (input.thumbnailUrl) updates.thumbnailUrl = input.thumbnailUrl;
 
-      await db
-        .update(videos)
+      db.update(videos)
         .set(updates)
-        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)));
+        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)))
+        .run();
 
       return { success: true };
     }),
@@ -89,16 +89,16 @@ export const videoRouter = createRouter({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
-      const [video] = await db
+      const video = db
         .select()
         .from(videos)
-        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)));
+        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)))
+        .get();
 
       if (!video) {
         throw new Error("Video not found");
       }
 
-      // Demo: randomly assign one of 3 demo videos
       const demoVideos = [
         "/videos/demo1.mp4",
         "/videos/demo2.mp4",
@@ -106,13 +106,10 @@ export const videoRouter = createRouter({
       ];
       const randomVideo = demoVideos[Math.floor(Math.random() * demoVideos.length)];
 
-      await db
-        .update(videos)
-        .set({
-          status: "completed",
-          videoUrl: randomVideo,
-        })
-        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)));
+      db.update(videos)
+        .set({ status: "completed", videoUrl: randomVideo })
+        .where(and(eq(videos.id, input.id), eq(videos.userId, ctx.user.id)))
+        .run();
 
       return { success: true, videoUrl: randomVideo };
     }),

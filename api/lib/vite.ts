@@ -7,14 +7,53 @@ import path from "path";
 type App = Hono<{ Bindings: HttpBindings }>;
 
 export function serveStaticFiles(app: App) {
-  // In production, boot.js is in dist/, so public files are at dist/public/
-  const distPath = path.resolve(process.cwd(), "dist/public");
+  // Try multiple possible paths for the static files
+  const possiblePaths = [
+    path.resolve(process.cwd(), "dist/public"),
+    path.resolve(process.cwd(), "dist"),
+    path.resolve(process.cwd(), "public"),
+    path.resolve(process.cwd(), "../dist/public"),
+    path.resolve(process.cwd(), "../public"),
+    "/app/dist/public",
+    "/app/public",
+  ];
 
-  app.use("*", serveStatic({ root: "./dist/public" }));
+  let distPath = "";
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p) && fs.existsSync(path.join(p, "index.html"))) {
+      distPath = p;
+      console.log(`[Static] Found frontend files at: ${distPath}`);
+      break;
+    }
+  }
 
+  if (!distPath) {
+    console.error("[Static] Frontend files NOT FOUND in any location!");
+    console.error("[Static] Searched paths:", possiblePaths);
+    console.error("[Static] CWD:", process.cwd());
+    console.error("[Static] Files in CWD:", fs.readdirSync(process.cwd()));
+    
+    // Return error for all non-API routes
+    app.use("*", (c) => {
+      if (c.req.path.startsWith("/api/")) {
+        return c.json({ error: "Not Found" }, 404);
+      }
+      return c.json({ 
+        error: "Frontend not built", 
+        cwd: process.cwd(),
+        searched: possiblePaths,
+      }, 500);
+    });
+    return;
+  }
+
+  // Serve static files from the found directory
+  const relativeRoot = path.relative(process.cwd(), distPath) || ".";
+  app.use("*", serveStatic({ root: relativeRoot }));
+
+  // SPA fallback: serve index.html for all non-API routes
   app.notFound((c) => {
-    const accept = c.req.header("accept") ?? "";
-    if (!accept.includes("text/html")) {
+    if (c.req.path.startsWith("/api/")) {
       return c.json({ error: "Not Found" }, 404);
     }
     const indexPath = path.resolve(distPath, "index.html");

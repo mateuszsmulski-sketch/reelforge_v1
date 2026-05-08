@@ -25251,11 +25251,44 @@ __export(vite_exports, {
 import fs from "fs";
 import path from "path";
 function serveStaticFiles(app2) {
-  const distPath = path.resolve(process.cwd(), "dist/public");
-  app2.use("*", serveStatic({ root: "./dist/public" }));
+  const possiblePaths = [
+    path.resolve(process.cwd(), "dist/public"),
+    path.resolve(process.cwd(), "dist"),
+    path.resolve(process.cwd(), "public"),
+    path.resolve(process.cwd(), "../dist/public"),
+    path.resolve(process.cwd(), "../public"),
+    "/app/dist/public",
+    "/app/public"
+  ];
+  let distPath = "";
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p) && fs.existsSync(path.join(p, "index.html"))) {
+      distPath = p;
+      console.log(`[Static] Found frontend files at: ${distPath}`);
+      break;
+    }
+  }
+  if (!distPath) {
+    console.error("[Static] Frontend files NOT FOUND in any location!");
+    console.error("[Static] Searched paths:", possiblePaths);
+    console.error("[Static] CWD:", process.cwd());
+    console.error("[Static] Files in CWD:", fs.readdirSync(process.cwd()));
+    app2.use("*", (c) => {
+      if (c.req.path.startsWith("/api/")) {
+        return c.json({ error: "Not Found" }, 404);
+      }
+      return c.json({
+        error: "Frontend not built",
+        cwd: process.cwd(),
+        searched: possiblePaths
+      }, 500);
+    });
+    return;
+  }
+  const relativeRoot = path.relative(process.cwd(), distPath) || ".";
+  app2.use("*", serveStatic({ root: relativeRoot }));
   app2.notFound((c) => {
-    const accept = c.req.header("accept") ?? "";
-    if (!accept.includes("text/html")) {
+    if (c.req.path.startsWith("/api/")) {
       return c.json({ error: "Not Found" }, 404);
     }
     const indexPath = path.resolve(distPath, "index.html");
@@ -52764,8 +52797,9 @@ function drizzle(...params) {
 
 // api/lib/db-url.ts
 function getDatabaseUrl() {
-  const url2 = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQL_PRIVATE_URL;
-  if (url2) return url2;
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  if (process.env.MYSQL_URL) return process.env.MYSQL_URL;
+  if (process.env.MYSQL_PRIVATE_URL) return process.env.MYSQL_PRIVATE_URL;
   const host = process.env.MYSQLHOST || process.env.MYSQL_HOST;
   const port = process.env.MYSQLPORT || process.env.MYSQL_PORT || "3306";
   const database = process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE;
@@ -52774,6 +52808,8 @@ function getDatabaseUrl() {
   if (host && database && user) {
     return `mysql://${user}:${password}@${host}:${port}/${database}`;
   }
+  const raw2 = process.env.MYSQL_URL || "";
+  if (raw2.includes("mysql://")) return raw2;
   return "";
 }
 

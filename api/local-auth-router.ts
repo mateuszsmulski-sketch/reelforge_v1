@@ -30,7 +30,7 @@ export const localAuthRouter = createRouter({
     .mutation(async ({ input }) => {
       const db = getDb();
 
-      const existing = db
+      const existing = await db
         .select()
         .from(users)
         .where(eq(users.email, input.email))
@@ -42,16 +42,16 @@ export const localAuthRouter = createRouter({
 
       const hashedPassword = await bcrypt.hash(input.password, 12);
 
-      const result = db.insert(users).values({
+      const result = await db.insert(users).values({
         name: input.name,
         email: input.email,
         password: hashedPassword,
-      }).returning().get();
+      }).returning();
 
-      const userId = result.id;
-      const token = await createToken(userId);
+      const inserted = result[0];
+      const token = await createToken(inserted.id);
 
-      return { token, user: { id: userId, name: input.name, email: input.email } };
+      return { token, user: { id: inserted.id, name: inserted.name, email: inserted.email } };
     }),
 
   login: publicQuery
@@ -64,7 +64,7 @@ export const localAuthRouter = createRouter({
     .mutation(async ({ input }) => {
       const db = getDb();
 
-      const user = db
+      const user = await db
         .select()
         .from(users)
         .where(eq(users.email, input.email))
@@ -79,7 +79,7 @@ export const localAuthRouter = createRouter({
         throw new Error("Invalid email or password");
       }
 
-      db.update(users)
+      await db.update(users)
         .set({ lastSignInAt: new Date() })
         .where(eq(users.id, user.id))
         .run();
@@ -111,7 +111,7 @@ export const localAuthRouter = createRouter({
       if (!userId) return null;
 
       const db = getDb();
-      const user = db
+      const user = await db
         .select({
           id: users.id,
           name: users.name,

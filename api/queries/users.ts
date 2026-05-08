@@ -4,7 +4,7 @@ import { users } from "@db/schema";
 
 export async function findUserByUnionId(unionId: string) {
   const db = getDb();
-  return db.select().from(users).where(eq(users.unionId, unionId)).get() ?? null;
+  return (await db.select().from(users).where(eq(users.unionId, unionId)).get()) ?? null;
 }
 
 export async function upsertUser(data: {
@@ -16,7 +16,7 @@ export async function upsertUser(data: {
 }) {
   const db = getDb();
   
-  const existing = db.select().from(users).where(eq(users.unionId, data.unionId)).get();
+  const existing = await db.select().from(users).where(eq(users.unionId, data.unionId)).get();
   
   if (existing) {
     db.update(users)
@@ -26,6 +26,6 @@ export async function upsertUser(data: {
     return { ...existing, ...data };
   }
   
-  const result = db.insert(users).values(data).returning().get();
-  return result;
+  const result = await db.insert(users).values(data).returning();
+  return result[0];
 }

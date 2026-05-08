@@ -17,7 +17,7 @@ export const videoRouter = createRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
-      const result = db.insert(videos).values({
+      const result = await db.insert(videos).values({
         userId: ctx.user.id,
         title: input.title,
         prompt: input.prompt,
@@ -25,9 +25,9 @@ export const videoRouter = createRouter({
         duration: input.duration,
         ratio: input.ratio,
         status: "processing",
-      }).returning().get();
+      }).returning();
 
-      return { id: result.id, success: true };
+      return { id: result[0].id, success: true };
     }),
 
   list: authedQuery.query(async ({ ctx }) => {

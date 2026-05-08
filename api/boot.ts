@@ -14,6 +14,18 @@ const app = new Hono<{ Bindings: HttpBindings }>();
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
+// Debug endpoint - shows available env vars (no secrets)
+app.get("/api/debug", (c) => {
+  const vars = Object.keys(process.env)
+    .filter(k => !k.toLowerCase().includes("secret") && !k.toLowerCase().includes("password") && !k.toLowerCase().includes("token"))
+    .reduce((acc, k) => { acc[k] = process.env[k]?.slice(0, 20) + "..."; return acc; }, {} as Record<string, string>);
+  return c.json({ 
+    message: "If you see no MYSQL_ or DATABASE_ vars, Railway DB is not connected to this service",
+    envVars: vars,
+    hasDbUrl: !!(process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQLHOST),
+  });
+});
+
 // Manual DB init endpoint (call from browser if auto-migration fails)
 app.get("/api/init-db", async (c) => {
   try {

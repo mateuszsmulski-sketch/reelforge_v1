@@ -53431,6 +53431,17 @@ async function createContext(opts) {
 var app = new Hono2();
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
+app.get("/api/debug", (c) => {
+  const vars = Object.keys(process.env).filter((k) => !k.toLowerCase().includes("secret") && !k.toLowerCase().includes("password") && !k.toLowerCase().includes("token")).reduce((acc, k) => {
+    acc[k] = process.env[k]?.slice(0, 20) + "...";
+    return acc;
+  }, {});
+  return c.json({
+    message: "If you see no MYSQL_ or DATABASE_ vars, Railway DB is not connected to this service",
+    envVars: vars,
+    hasDbUrl: !!(process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.MYSQLHOST)
+  });
+});
 app.get("/api/init-db", async (c) => {
   try {
     await runMigrations();

@@ -50,8 +50,12 @@ app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 export default app;
 
 if (env.isProduction) {
-  // Auto-migrate on startup
-  await runMigrations();
+  // Try to auto-migrate, but don't fail if it doesn't work
+  try {
+    await runMigrations();
+  } catch (e) {
+    console.log("[DB] Auto-migration skipped:", e instanceof Error ? e.message : String(e));
+  }
 
   const { serve } = await import("@hono/node-server");
   const { serveStaticFiles } = await import("./lib/vite");
